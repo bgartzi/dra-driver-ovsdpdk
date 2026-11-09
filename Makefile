@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DRIVER_NAME := dra-driver-ovsdpdk
-MODULE      := github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk
+DRIVER_NAME   := dra-driver-ovsdpdk
+OPERATOR_NAME := ovs-dpdk-operator
+MODULE        := github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk
 
 GOLANG_VERSION        ?= 1.26
 GOLANGCI_LINT_VERSION ?= v2.7.2
@@ -30,9 +31,9 @@ GOARCH ?= amd64
 
 BIN_DIR := $(CURDIR)/bin
 
-APIS := ovsdpdkdra/v1alpha1
+APIS := ovsdpdkdra/v1alpha1 ovsdpdkoperator/v1alpha1
 
-.PHONY: all build binary binary-driver check vet lint test coverage generate generate-deepcopy generate-crds generate-crds-driver generate-mocks build-image build-image-driver push-image push-image-driver deploy deploy-driver undeploy undeploy-driver deploy-openshift deploy-openshift-driver undeploy-openshift undeploy-openshift-driver
+.PHONY: all build binary binary-driver check vet lint test coverage generate generate-deepcopy generate-crds generate-crds-driver generate-crds-operator generate-mocks build-image build-image-driver push-image push-image-driver deploy deploy-driver undeploy undeploy-driver deploy-openshift deploy-openshift-driver undeploy-openshift undeploy-openshift-driver
 
 all: check test build
 
@@ -79,13 +80,19 @@ generate-deepcopy: $(CONTROLLER_GEN)
 			paths=$(CURDIR)/pkg/api/$${api}/; \
 	done
 
-generate-crds: generate-crds-driver
+generate-crds: generate-crds-driver generate-crds-operator
 
 generate-crds-driver: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) \
 		crd \
 		paths=$(CURDIR)/pkg/api/ovsdpdkdra/v1alpha1/ \
 		output:crd:dir=$(CURDIR)/deployments/$(DRIVER_NAME)/crds/
+
+generate-crds-operator: $(CONTROLLER_GEN)
+	$(CONTROLLER_GEN) \
+		crd \
+		paths=$(CURDIR)/pkg/api/ovsdpdkoperator/v1alpha1/ \
+		output:crd:dir=$(CURDIR)/deployments/$(OPERATOR_NAME)/crds/
 
 $(CONTROLLER_GEN):
 	GOBIN=$(BIN_DIR) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION)
