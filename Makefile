@@ -32,7 +32,7 @@ BIN_DIR := $(CURDIR)/bin
 
 APIS := ovsdpdkdra/v1alpha1
 
-.PHONY: all build binary check vet lint test coverage vendor generate generate-deepcopy generate-crds generate-mocks build-image push-image deploy undeploy deploy-openshift undeploy-openshift
+.PHONY: all build binary check vet lint test coverage generate generate-deepcopy generate-crds generate-mocks build-image push-image deploy undeploy deploy-openshift undeploy-openshift
 
 all: check test build
 
@@ -62,9 +62,6 @@ test:
 
 coverage: test
 	go tool cover -func=coverage.out
-
-vendor:
-	go mod vendor
 
 # ---- code generation ------------------------------------------------------
 
