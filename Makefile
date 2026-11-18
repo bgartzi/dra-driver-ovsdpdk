@@ -34,7 +34,7 @@ BIN_DIR := $(CURDIR)/bin
 
 APIS := ovsdpdkdra/v1alpha1 ovsdpdkoperator/v1alpha1
 
-.PHONY: all build binary binary-driver binary-operator check vet lint test coverage generate generate-deepcopy generate-crds generate-crds-driver generate-crds-operator generate-mocks build-image build-image-driver build-image-operator push-image push-image-driver push-image-operator deploy deploy-driver undeploy undeploy-driver deploy-openshift deploy-openshift-driver undeploy-openshift undeploy-openshift-driver
+.PHONY: all build binary binary-driver binary-operator check vet lint test coverage generate generate-deepcopy generate-crds generate-crds-driver generate-crds-operator generate-mocks build-image build-image-driver build-image-operator push-image push-image-driver push-image-operator deploy deploy-driver deploy-operator undeploy undeploy-driver undeploy-operator deploy-openshift deploy-openshift-driver undeploy-openshift undeploy-openshift-driver
 
 all: check test build
 
@@ -142,7 +142,7 @@ push-image-operator: build-image-operator
 
 # ---- cluster deployment ---------------------------------------------------
 
-deploy: deploy-driver
+deploy: deploy-driver deploy-operator
 
 deploy-driver: ## Deploy the driver (vanilla Kubernetes / kind)
 	kubectl apply -f $(CURDIR)/deployments/dra-driver-ovsdpdk/crds/
@@ -150,12 +150,26 @@ deploy-driver: ## Deploy the driver (vanilla Kubernetes / kind)
 		sed 's|IMAGE_DRA_DRIVER|$(IMAGE_NAME_DRIVER):$(IMAGE_TAG)|g' | \
 		kubectl apply -f -
 
-undeploy: undeploy-driver
+deploy-operator:
+	kubectl apply -f $(CURDIR)/deployments/ovs-dpdk-operator/crds/
+	kubectl kustomize $(CURDIR)/deployments/ovs-dpdk-operator/k8s/ | \
+			OVS_DPDK_OPERATOR_IMAGE=$(IMAGE_NAME_OPERATOR):$(IMAGE_TAG) \
+			IMAGE_DRA_DRIVER=$(IMAGE_NAME_DRIVER):$(IMAGE_TAG) \
+			DRA_DRIVER_NAMESPACE="dra-driver-ovsdpdk" \
+		envsubst | \
+		kubectl apply -f -
+
+undeploy: undeploy-driver undeploy-operator
 
 undeploy-driver: ## Remove the driver (vanilla Kubernetes / kind)
 	kubectl kustomize $(CURDIR)/deployments/dra-driver-ovsdpdk/k8s/ | \
 		kubectl delete --ignore-not-found -f -
 	kubectl delete --ignore-not-found -f $(CURDIR)/deployments/dra-driver-ovsdpdk/crds/
+
+undeploy-operator:
+	kubectl kustomize $(CURDIR)/deployments/ovs-dpdk-operator/k8s/ | \
+		kubectl delete --ignore-not-found -f -
+	kubectl delete --ignore-not-found -f $(CURDIR)/deployments/ovs-dpdk-operator/crds/
 
 deploy-openshift: ## Deploy the driver on OpenShift
 	kubectl apply -f $(CURDIR)/deployments/dra-driver-ovsdpdk/crds/

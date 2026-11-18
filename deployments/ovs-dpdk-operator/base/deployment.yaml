@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ovs-dpdk-operator
+  namespace: ovs-dpdk-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: ovs-dpdk-operator
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: ovs-dpdk-operator
+    spec:
+      affinity:
+        nodeAffinity:
+          # In the context of Hypershift, the operator is deployed
+          # on Nodepools which are labeled as workers. We better
+          # relax the node affinity to prefer masters/control-plane
+          # when possible otherwise we schedule where it's possible.
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: "node-role.kubernetes.io/master"
+                    operator: Exists
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: "node-role.kubernetes.io/control-plane"
+                    operator: Exists
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+      serviceAccountName: ovs-dpdk-operator
+      priorityClassName: "system-node-critical"
+      containers:
+        - name: ovs-dpdk-operator
+          # Replace this with the built image name
+          image: ${OVS_DPDK_OPERATOR_IMAGE}
+          command:
+          - ovs-dpdk-operator
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DRA_DRIVER_IMAGE
+              value: ${IMAGE_DRA_DRIVER}
+            - name: DRA_DRIVER_NAMESPACE
+              value: ${DRA_DRIVER_NAMESPACE}
