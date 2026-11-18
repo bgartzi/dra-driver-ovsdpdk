@@ -25,9 +25,19 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -ldflags="-s -w" \
     -o /dra-driver-ovsdpdk \
-    ./cmd/dra-driver-ovsdpdk/
+    ./cmd/dra-driver-ovsdpdk/ && \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -ldflags="-s -w" \
+    -o /ovs-dpdk-operator \
+    ./cmd/ovs-dpdk-operator/
 
-FROM quay.io/centos/centos:stream9 AS runtime
+FROM quay.io/centos/centos:stream9 AS operator
+
+COPY --from=builder /ovs-dpdk-operator /usr/bin/ovs-dpdk-operator
+
+ENTRYPOINT ["/usr/bin/ovs-dpdk-operator"]
+
+FROM quay.io/centos/centos:stream9 AS driver
 
 RUN dnf install -y util-linux-core acl && dnf clean all
 

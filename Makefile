@@ -21,10 +21,11 @@ GOLANGCI_LINT_VERSION ?= v2.7.2
 CONTROLLER_GEN_VERSION ?= v0.21.0
 MOCKERY_VERSION        ?= v2.53.6
 
-CONTAINER_TOOL    ?= podman
-REGISTRY          ?= ghcr.io/k8snetworkplumbingwg
-IMAGE_NAME_DRIVER ?= $(REGISTRY)/$(DRIVER_NAME)
-IMAGE_TAG         ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+CONTAINER_TOOL      ?= podman
+REGISTRY            ?= ghcr.io/k8snetworkplumbingwg
+IMAGE_NAME_DRIVER   ?= $(REGISTRY)/$(DRIVER_NAME)
+IMAGE_NAME_OPERATOR ?= $(REGISTRY)/$(OPERATOR_NAME)
+IMAGE_TAG           ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
 GOOS   ?= linux
 GOARCH ?= amd64
@@ -33,7 +34,7 @@ BIN_DIR := $(CURDIR)/bin
 
 APIS := ovsdpdkdra/v1alpha1 ovsdpdkoperator/v1alpha1
 
-.PHONY: all build binary binary-driver binary-operator check vet lint test coverage generate generate-deepcopy generate-crds generate-crds-driver generate-crds-operator generate-mocks build-image build-image-driver push-image push-image-driver deploy deploy-driver undeploy undeploy-driver deploy-openshift deploy-openshift-driver undeploy-openshift undeploy-openshift-driver
+.PHONY: all build binary binary-driver binary-operator check vet lint test coverage generate generate-deepcopy generate-crds generate-crds-driver generate-crds-operator generate-mocks build-image build-image-driver build-image-operator push-image push-image-driver push-image-operator deploy deploy-driver undeploy undeploy-driver deploy-openshift deploy-openshift-driver undeploy-openshift undeploy-openshift-driver
 
 all: check test build
 
@@ -111,20 +112,33 @@ generate-mocks: $(MOCKERY)
 $(MOCKERY):
 	GOBIN=$(BIN_DIR) go install github.com/vektra/mockery/v2@$(MOCKERY_VERSION)
 
-build-image: build-image-driver
+build-image: build-image-driver build-image-operator
 
 build-image-driver:
 	$(CONTAINER_TOOL) build \
 		--platform $(GOOS)/$(GOARCH) \
 		--build-arg GOLANG_VERSION=$(GOLANG_VERSION) \
+		--target driver \
 		-t $(IMAGE_NAME_DRIVER):$(IMAGE_TAG) \
 		-f $(CURDIR)/Dockerfile \
 		$(CURDIR)
 
-push-image: push-image-driver
+build-image-operator:
+	$(CONTAINER_TOOL) build \
+		--platform $(GOOS)/$(GOARCH) \
+		--build-arg GOLANG_VERSION=$(GOLANG_VERSION) \
+		--target operator \
+		-t $(IMAGE_NAME_OPERATOR):$(IMAGE_TAG) \
+		-f $(CURDIR)/Dockerfile \
+		$(CURDIR)
+
+push-image: push-image-driver push-image-operator
 
 push-image-driver: build-image-driver
 	$(CONTAINER_TOOL) push $(IMAGE_NAME_DRIVER):$(IMAGE_TAG)
+
+push-image-operator: build-image-operator
+	$(CONTAINER_TOOL) push $(IMAGE_NAME_OPERATOR):$(IMAGE_TAG)
 
 # ---- cluster deployment ---------------------------------------------------
 
