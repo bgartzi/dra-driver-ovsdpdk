@@ -130,22 +130,24 @@ Field specification:
 ### Build and push
 
 ```bash
-export IMAGE_NAME=ghcr.io/k8snetworkplumbingwg/dra-driver-ovsdpdk  # adjust as needed
+export REGISTRY=ghcr.io/k8snetworkplumbingwg  # adjust as needed
 export IMAGE_TAG=latest
-make build-image
-podman push "${IMAGE_NAME}:${IMAGE_TAG}"
+make build-image-driver
+make push-image-driver
 ```
 
 ### Deploy on Kubernetes
 
 ```bash
+export IMAGE_NAME=${REGISTRY}/dra-driver-ovsdpdk
+
 # CRD, namespace, RBAC, and DaemonSet in one shot:
 make deploy
 
 # Or step by step:
-kubectl apply -f deployments/crds/
-kubectl kustomize deployments/k8s/ | \
-    sed "s|IMAGE|${IMAGE_NAME}:${IMAGE_TAG}|g" | \
+kubectl apply -f deployments/dra-driver-ovsdpdk/crds/
+kubectl kustomize deployments/dra-driver-ovsdpdk/k8s/ | \
+    sed "s|IMAGE_DRA_DRIVER|${IMAGE_NAME}:${IMAGE_TAG}|g" | \
     kubectl apply -f -
 ```
 
@@ -162,10 +164,10 @@ Apply the global config and a resource policy.
 
 ```bash
 # Global vhost-user settings (edit to match your environment):
-kubectl apply -f deployments/examples/k8s-config.yaml
+kubectl apply -f deployments/dra-driver-ovsdpdk/examples/k8s-config.yaml
 
 # Bridge policy (edit bridges and nodeSelector):
-kubectl apply -f deployments/examples/policy.yaml
+kubectl apply -f deployments/dra-driver-ovsdpdk/examples/policy.yaml
 ```
 
 Verify the driver published ResourceSlices:
@@ -257,8 +259,8 @@ kubectl get resourceclaim my-dpdk-pod-vhost-p6bzb \
 ```bash
 make undeploy
 # also remove config and policies:
-kubectl delete -f deployments/examples/k8s-config.yaml
-kubectl delete -f deployments/examples/policy.yaml
+kubectl delete -f deployments/dra-driver-ovsdpdk/examples/k8s-config.yaml
+kubectl delete -f deployments/dra-driver-ovsdpdk/examples/policy.yaml
 ```
 
 ### Deploying on OpenShift
@@ -270,16 +272,16 @@ make deploy-openshift
 Then apply the OpenShift-specific config and a bridge policy:
 
 ```bash
-kubectl apply -f deployments/examples/openshift-config.yaml
-kubectl apply -f deployments/examples/policy.yaml
+kubectl apply -f deployments/dra-driver-ovsdpdk/examples/openshift-config.yaml
+kubectl apply -f deployments/dra-driver-ovsdpdk/examples/policy.yaml
 ```
 
 To remove:
 
 ```bash
 make undeploy-openshift
-kubectl delete -f deployments/examples/openshift-config.yaml
-kubectl delete -f deployments/examples/policy.yaml
+kubectl delete -f deployments/dra-driver-ovsdpdk/examples/openshift-config.yaml
+kubectl delete -f deployments/dra-driver-ovsdpdk/examples/policy.yaml
 ```
 
 ## Development

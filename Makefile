@@ -20,10 +20,10 @@ GOLANGCI_LINT_VERSION ?= v2.7.2
 CONTROLLER_GEN_VERSION ?= v0.21.0
 MOCKERY_VERSION        ?= v2.53.6
 
-CONTAINER_TOOL ?= podman
-REGISTRY       ?= ghcr.io/k8snetworkplumbingwg
-IMAGE_NAME     ?= $(REGISTRY)/$(DRIVER_NAME)
-IMAGE_TAG      ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+CONTAINER_TOOL    ?= podman
+REGISTRY          ?= ghcr.io/k8snetworkplumbingwg
+IMAGE_NAME_DRIVER ?= $(REGISTRY)/$(DRIVER_NAME)
+IMAGE_TAG         ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
 GOOS   ?= linux
 GOARCH ?= amd64
@@ -32,14 +32,16 @@ BIN_DIR := $(CURDIR)/bin
 
 APIS := ovsdpdkdra/v1alpha1
 
-.PHONY: all build binary check vet lint test coverage generate generate-deepcopy generate-crds generate-mocks build-image push-image deploy undeploy deploy-openshift undeploy-openshift
+.PHONY: all build binary binary-driver check vet lint test coverage generate generate-deepcopy generate-crds generate-crds-driver generate-mocks build-image build-image-driver push-image push-image-driver deploy deploy-driver undeploy undeploy-driver deploy-openshift deploy-openshift-driver undeploy-openshift undeploy-openshift-driver
 
 all: check test build
 
 build:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build ./...
 
-binary:
+binary: binary-driver
+
+binary-driver:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		go build -ldflags "-s -w" \
 		-o $(DRIVER_NAME) \
@@ -77,12 +79,13 @@ generate-deepcopy: $(CONTROLLER_GEN)
 			paths=$(CURDIR)/pkg/api/$${api}/; \
 	done
 
-generate-crds: $(CONTROLLER_GEN)
-	@mkdir -p $(CURDIR)/deployments/crds/
+generate-crds: generate-crds-driver
+
+generate-crds-driver: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) \
 		crd \
 		paths=$(CURDIR)/pkg/api/ovsdpdkdra/v1alpha1/ \
-		output:crd:dir=$(CURDIR)/deployments/crds/
+		output:crd:dir=$(CURDIR)/deployments/$(DRIVER_NAME)/crds/
 
 $(CONTROLLER_GEN):
 	GOBIN=$(BIN_DIR) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION)
@@ -95,37 +98,45 @@ generate-mocks: $(MOCKERY)
 $(MOCKERY):
 	GOBIN=$(BIN_DIR) go install github.com/vektra/mockery/v2@$(MOCKERY_VERSION)
 
-build-image:
+build-image: build-image-driver
+
+build-image-driver:
 	$(CONTAINER_TOOL) build \
 		--platform $(GOOS)/$(GOARCH) \
 		--build-arg GOLANG_VERSION=$(GOLANG_VERSION) \
-		-t $(IMAGE_NAME):$(IMAGE_TAG) \
+		-t $(IMAGE_NAME_DRIVER):$(IMAGE_TAG) \
 		-f $(CURDIR)/Dockerfile \
 		$(CURDIR)
 
-push-image: build-image
-	$(CONTAINER_TOOL) push $(IMAGE_NAME):$(IMAGE_TAG)
+push-image: push-image-driver
+
+push-image-driver: build-image-driver
+	$(CONTAINER_TOOL) push $(IMAGE_NAME_DRIVER):$(IMAGE_TAG)
 
 # ---- cluster deployment ---------------------------------------------------
 
-deploy: ## Deploy the driver (vanilla Kubernetes / kind)
-	kubectl apply -f $(CURDIR)/deployments/crds/
-	kubectl kustomize $(CURDIR)/deployments/k8s/ | \
-		sed 's|IMAGE|$(IMAGE_NAME):$(IMAGE_TAG)|g' | \
+deploy: deploy-driver
+
+deploy-driver: ## Deploy the driver (vanilla Kubernetes / kind)
+	kubectl apply -f $(CURDIR)/deployments/dra-driver-ovsdpdk/crds/
+	kubectl kustomize $(CURDIR)/deployments/dra-driver-ovsdpdk/k8s/ | \
+		sed 's|IMAGE_DRA_DRIVER|$(IMAGE_NAME_DRIVER):$(IMAGE_TAG)|g' | \
 		kubectl apply -f -
 
-undeploy: ## Remove the driver (vanilla Kubernetes / kind)
-	kubectl kustomize $(CURDIR)/deployments/k8s/ | \
+undeploy: undeploy-driver
+
+undeploy-driver: ## Remove the driver (vanilla Kubernetes / kind)
+	kubectl kustomize $(CURDIR)/deployments/dra-driver-ovsdpdk/k8s/ | \
 		kubectl delete --ignore-not-found -f -
-	kubectl delete --ignore-not-found -f $(CURDIR)/deployments/crds/
+	kubectl delete --ignore-not-found -f $(CURDIR)/deployments/dra-driver-ovsdpdk/crds/
 
 deploy-openshift: ## Deploy the driver on OpenShift
-	kubectl apply -f $(CURDIR)/deployments/crds/
-	kubectl kustomize $(CURDIR)/deployments/openshift/ | \
-		sed 's|IMAGE|$(IMAGE_NAME):$(IMAGE_TAG)|g' | \
+	kubectl apply -f $(CURDIR)/deployments/dra-driver-ovsdpdk/crds/
+	kubectl kustomize $(CURDIR)/deployments/dra-driver-ovsdpdk/openshift/ | \
+		sed 's|IMAGE_DRA_DRIVER|$(IMAGE_NAME_DRIVER):$(IMAGE_TAG)|g' | \
 		kubectl apply -f -
 
 undeploy-openshift: ## Remove the driver from OpenShift
-	kubectl kustomize $(CURDIR)/deployments/openshift/ | \
+	kubectl kustomize $(CURDIR)/deployments/dra-driver-ovsdpdk/openshift/ | \
 		kubectl delete --ignore-not-found -f -
-	kubectl delete --ignore-not-found -f $(CURDIR)/deployments/crds/
+	kubectl delete --ignore-not-found -f $(CURDIR)/deployments/dra-driver-ovsdpdk/crds/

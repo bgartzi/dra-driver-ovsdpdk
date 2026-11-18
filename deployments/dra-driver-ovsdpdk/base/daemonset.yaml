@@ -16,7 +16,7 @@ spec:
       hostPID: true
       initContainers:
         - name: init-users
-          image: IMAGE
+          image: IMAGE_DRA_DRIVER
           command:
             - sh
             - -c
@@ -34,7 +34,7 @@ spec:
       terminationGracePeriodSeconds: 60
       containers:
         - name: driver
-          image: IMAGE
+          image: IMAGE_DRA_DRIVER
           imagePullPolicy: IfNotPresent
           command:
             - /usr/bin/dra-driver-ovsdpdk
