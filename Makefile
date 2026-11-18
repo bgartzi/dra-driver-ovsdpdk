@@ -33,20 +33,26 @@ BIN_DIR := $(CURDIR)/bin
 
 APIS := ovsdpdkdra/v1alpha1 ovsdpdkoperator/v1alpha1
 
-.PHONY: all build binary binary-driver check vet lint test coverage generate generate-deepcopy generate-crds generate-crds-driver generate-crds-operator generate-mocks build-image build-image-driver push-image push-image-driver deploy deploy-driver undeploy undeploy-driver deploy-openshift deploy-openshift-driver undeploy-openshift undeploy-openshift-driver
+.PHONY: all build binary binary-driver binary-operator check vet lint test coverage generate generate-deepcopy generate-crds generate-crds-driver generate-crds-operator generate-mocks build-image build-image-driver push-image push-image-driver deploy deploy-driver undeploy undeploy-driver deploy-openshift deploy-openshift-driver undeploy-openshift undeploy-openshift-driver
 
 all: check test build
 
 build:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build ./...
 
-binary: binary-driver
+binary: binary-driver binary-operator
 
 binary-driver:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) \
 		go build -ldflags "-s -w" \
 		-o $(DRIVER_NAME) \
 		$(MODULE)/cmd/$(DRIVER_NAME)
+
+binary-operator:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) \
+		go build -ldflags "-s -w" \
+		-o $(OPERATOR_NAME) \
+		$(MODULE)/cmd/$(OPERATOR_NAME)
 
 check: vet lint
 
