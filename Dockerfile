@@ -42,5 +42,6 @@ FROM quay.io/centos/centos:stream9 AS driver
 RUN dnf install -y util-linux-core acl && dnf clean all
 
 COPY --from=builder /dra-driver-ovsdpdk /usr/bin/dra-driver-ovsdpdk
+COPY --from=builder /build/things-we-are-dropping-into-hosts /things
 
 ENTRYPOINT ["/usr/bin/dra-driver-ovsdpdk"]
