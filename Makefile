@@ -34,7 +34,7 @@ BIN_DIR := $(CURDIR)/bin
 
 APIS := ovsdpdkdra/v1alpha1 ovsdpdkoperator/v1alpha1
 
-.PHONY: all build binary binary-driver binary-operator check vet lint test coverage generate generate-deepcopy generate-crds generate-crds-driver generate-crds-operator generate-mocks build-image build-image-driver build-image-operator push-image push-image-driver push-image-operator deploy deploy-driver deploy-operator undeploy undeploy-driver undeploy-operator deploy-openshift deploy-openshift-driver undeploy-openshift undeploy-openshift-driver
+.PHONY: all build binary binary-driver binary-operator check vet lint test coverage generate generate-deepcopy generate-crds generate-crds-driver generate-crds-operator generate-mocks build-image build-image-driver build-image-operator push-image push-image-driver push-image-operator deploy deploy-driver deploy-operator undeploy undeploy-driver undeploy-operator deploy-openshift deploy-openshift-driver undeploy-openshift undeploy-openshift-driver gen-manifests-poc
 
 all: check test build
 
@@ -158,6 +158,14 @@ deploy-operator:
 			DRA_DRIVER_NAMESPACE="dra-driver-ovsdpdk" \
 		envsubst | \
 		kubectl apply -f -
+
+gen-manifests-poc:
+	cp $(CURDIR)/deployments/dra-driver-ovsdpdk/crds/* $(CURDIR)/poc-manifests
+	kubectl kustomize $(CURDIR)/deployments/dra-driver-ovsdpdk/operator-poc/ | \
+			OVS_DPDK_OPERATOR_IMAGE=$(IMAGE_NAME_OPERATOR):$(IMAGE_TAG) \
+			IMAGE_DRA_DRIVER=$(IMAGE_NAME_DRIVER):$(IMAGE_TAG) \
+			DRA_DRIVER_NAMESPACE="dra-driver-ovsdpdk" \
+		envsubst > $(CURDIR)/poc-manifests/dra-driver.yaml  \
 
 undeploy: undeploy-driver undeploy-operator
 
