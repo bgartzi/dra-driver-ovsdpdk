@@ -1,0 +1,277 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dra-driver-ovsdpdk
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dra-driver-ovsdpdk
+  namespace: dra-driver-ovsdpdk
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dra-driver-ovsdpdk
+  namespace: dra-driver-ovsdpdk
+rules:
+- apiGroups:
+  - ovsdpdk.k8snetworkplumbingwg.io
+  resources:
+  - ovsdpdkresourcepolicies
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dra-driver-ovsdpdk
+rules:
+- apiGroups:
+  - resource.k8s.io
+  resources:
+  - resourceslices
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - resource.k8s.io
+  resources:
+  - resourceclaims
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - resource.k8s.io
+  resources:
+  - resourceclaims/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - resource.k8s.io
+  resourceNames:
+  - ovsdpdk.k8snetworkplumbingwg.io
+  resources:
+  - resourceclaims/driver
+  verbs:
+  - associated-node:update
+  - associated-node:patch
+- apiGroups:
+  - ovsdpdk.k8snetworkplumbingwg.io
+  resources:
+  - ovsdpdkconfigs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dra-driver-ovsdpdk
+  namespace: dra-driver-ovsdpdk
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: dra-driver-ovsdpdk
+subjects:
+- kind: ServiceAccount
+  name: dra-driver-ovsdpdk
+  namespace: dra-driver-ovsdpdk
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dra-driver-ovsdpdk
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dra-driver-ovsdpdk
+subjects:
+- kind: ServiceAccount
+  name: dra-driver-ovsdpdk
+  namespace: dra-driver-ovsdpdk
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: dra-driver-ovsdpdk
+  namespace: dra-driver-ovsdpdk
+spec:
+  selector:
+    matchLabels:
+      app: dra-driver-ovsdpdk
+  template:
+    metadata:
+      labels:
+        app: dra-driver-ovsdpdk
+    spec:
+      containers:
+      - command:
+        - /usr/bin/dra-driver-ovsdpdk
+        - --node-name=$(NODE_NAME)
+        - --namespace=$(NAMESPACE)
+        - --enable-device-metadata
+        - --db-path=/var/run/ovsdpdk/ovsdpdk.db
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: ghcr.io/k8snetworkplumbingwg/dra-driver-ovsdpdk
+        imagePullPolicy: IfNotPresent
+        name: driver
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /etc/passwd
+          name: user-db
+          readOnly: true
+          subPath: passwd
+        - mountPath: /etc/group
+          name: user-db
+          readOnly: true
+          subPath: group
+        - mountPath: /var/lib/kubelet/plugins
+          name: kubelet-plugins
+        - mountPath: /var/lib/kubelet/plugins_registry
+          name: kubelet-registry
+        - mountPath: /var/lib/kubelet/device-plugins
+          name: device-plugins
+        - mountPath: /var/run/cdi
+          name: cdi-root
+        - mountPath: /var/run/ovsdpdk
+          name: socket-root
+        - mountPath: /var/run/openvswitch
+          name: ovs-run
+      hostPID: true
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - |
+          cp /things/configure-pmd-threads.sh /operator-scripts/configure-pmd-threads.sh
+          chmod 744 /operator-scripts/configure-pmd-threads.sh
+          nsenter --mount=/proc/1/ns/mnt -- chcon -t bin_t /run/ovsdpdkoperator/configure-pmd-threads.sh || echo "chcon failed (SELinux disabled?), continuing"
+          cp /things/99-ovs-dpdk-use-reserved-cpus.conf /systemd-dropins/ovs-vswitchd.service.d/99-ovs-dpdk-use-reserved-cpus.conf
+          nsenter --mount=/proc/1/ns/mnt -- systemctl daemon-reload
+          nsenter --mount=/proc/1/ns/mnt -- systemctl restart ovs-vswitchd.service
+        image: ghcr.io/k8snetworkplumbingwg/dra-driver-ovsdpdk
+        name: drop-ovsswitch-d-systemctl-dropin
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /systemd-dropins/ovs-vswitchd.service.d
+          name: ovs-vswitchd-service-d
+        - mountPath: /operator-scripts
+          name: ovs-dpdk-operator-scripts
+      - command:
+        - sh
+        - -c
+        - |
+          nsenter --mount=/proc/1/ns/mnt -- getent passwd > /user-db/passwd
+          nsenter --mount=/proc/1/ns/mnt -- getent group  > /user-db/group
+          echo "Populated passwd and group from host NSS"
+          cat /user-db/passwd | wc -l
+          cat /user-db/group  | wc -l
+        image: ghcr.io/k8snetworkplumbingwg/dra-driver-ovsdpdk
+        name: init-users
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /user-db
+          name: user-db
+      serviceAccountName: dra-driver-ovsdpdk
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - hostPath:
+          path: /run/systemd/system/ovs-vswitchd.service.d
+          type: DirectoryOrCreate
+        name: ovs-vswitchd-service-d
+      - hostPath:
+          path: /run/ovsdpdkoperator/
+          type: DirectoryOrCreate
+        name: ovs-dpdk-operator-scripts
+      - emptyDir: {}
+        name: user-db
+      - hostPath:
+          path: /var/lib/kubelet/plugins
+          type: DirectoryOrCreate
+        name: kubelet-plugins
+      - hostPath:
+          path: /var/lib/kubelet/plugins_registry
+          type: DirectoryOrCreate
+        name: kubelet-registry
+      - hostPath:
+          path: /var/lib/kubelet/device-plugins
+          type: DirectoryOrCreate
+        name: device-plugins
+      - hostPath:
+          path: /var/run/cdi
+          type: DirectoryOrCreate
+        name: cdi-root
+      - hostPath:
+          path: /var/run/ovsdpdk
+          type: DirectoryOrCreate
+        name: socket-root
+      - hostPath:
+          path: /var/run/openvswitch
+          type: DirectoryOrCreate
+        name: ovs-run
+---
+apiVersion: resource.k8s.io/v1
+kind: DeviceClass
+metadata:
+  name: ovsdpdk
+spec:
+  selectors:
+  - cel:
+      expression: device.driver == "ovsdpdk.k8snetworkplumbingwg.io"
+---
+allowHostDirVolumePlugin: true
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: true
+allowHostPorts: false
+allowPrivilegedContainer: true
+apiVersion: security.openshift.io/v1
+fsGroup:
+  type: RunAsAny
+kind: SecurityContextConstraints
+metadata:
+  name: ovsdpdk-driver
+readOnlyRootFilesystem: false
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: RunAsAny
+supplementalGroups:
+  type: RunAsAny
+users:
+- system:serviceaccount:dra-driver-ovsdpdk:dra-driver-ovsdpdk
+volumes:
+- hostPath
+- emptyDir
+- secret

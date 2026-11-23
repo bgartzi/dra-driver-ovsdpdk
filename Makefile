@@ -162,9 +162,7 @@ deploy-operator:
 gen-manifests-poc:
 	cp $(CURDIR)/deployments/dra-driver-ovsdpdk/crds/* $(CURDIR)/poc-manifests
 	kubectl kustomize $(CURDIR)/deployments/dra-driver-ovsdpdk/operator-poc/ | \
-			OVS_DPDK_OPERATOR_IMAGE=$(IMAGE_NAME_OPERATOR):$(IMAGE_TAG) \
-			IMAGE_DRA_DRIVER=$(IMAGE_NAME_DRIVER):$(IMAGE_TAG) \
-			DRA_DRIVER_NAMESPACE="dra-driver-ovsdpdk" \
+		sed 's|IMAGE_DRA_DRIVER|$(IMAGE_NAME_DRIVER):$(IMAGE_TAG)|g' | \
 		envsubst > $(CURDIR)/poc-manifests/dra-driver.yaml  \
 
 undeploy: undeploy-driver undeploy-operator

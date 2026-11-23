@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: dra-driver-ovsdpdk
+  namespace: dra-driver-ovsdpdk
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: drop-ovsswitch-d-systemctl-dropin
+        image: IMAGE_DRA_DRIVER
+        command:
+        - sh
+        - -c
+        - |
+          cp /things/configure-pmd-threads.sh /operator-scripts/configure-pmd-threads.sh
+          chmod 744 /operator-scripts/configure-pmd-threads.sh
+          nsenter --mount=/proc/1/ns/mnt -- chcon -t bin_t /run/ovsdpdkoperator/configure-pmd-threads.sh
+          cp /things/99-ovs-dpdk-use-reserved-cpus.conf /systemd-dropins/ovs-vswitchd.service.d/99-ovs-dpdk-use-reserved-cpus.conf
+          nsenter --mount=/proc/1/ns/mnt -- systemctl daemon-reload
+          nsenter --mount=/proc/1/ns/mnt -- systemctl restart ovs-vswitchd.service
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - name: ovs-vswitchd-service-d
+            mountPath: /systemd-dropins/ovs-vswitchd.service.d
+          - name: ovs-dpdk-operator-scripts
+            mountPath: /operator-scripts
+      volumes:
+        - name: ovs-vswitchd-service-d
+          hostPath:
+            path: /run/systemd/system/ovs-vswitchd.service.d
+            type: DirectoryOrCreate
+        - name: ovs-dpdk-operator-scripts
+          hostPath:
+            path: /run/ovsdpdkoperator/
+            type: DirectoryOrCreate
