@@ -34,7 +34,7 @@ import (
 
 	"github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk/pkg/cdi"
 	"github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk/pkg/consts"
-	"github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk/pkg/controllers"
+	controller "github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk/pkg/controllers/dra"
 	"github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk/pkg/deviceplugin"
 	"github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk/pkg/devicestate"
 	"github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk/pkg/driver"
@@ -247,7 +247,7 @@ func run(ctx context.Context, config *types.Config) error {
 	}
 	defer dvr.Stop()
 
-	reconciler := controllers.NewOvsDpdkResourcePolicyReconciler(
+	reconciler := controller.NewOvsDpdkResourcePolicyReconciler(
 		config.Manager.GetClient(),
 		config.Flags.NodeName,
 		config.Flags.Namespace,
@@ -259,7 +259,7 @@ func run(ctx context.Context, config *types.Config) error {
 		return fmt.Errorf("setup controller: %w", err)
 	}
 
-	configReconciler := controllers.NewOvsDpdkConfigReconciler(
+	configReconciler := controller.NewOvsDpdkConfigReconciler(
 		config.Manager.GetClient(),
 		config.Flags.ConfigName,
 		devState,
