@@ -40,6 +40,7 @@ func addKnownTypes(s *runtime.Scheme) error {
 		&OvsDpdkOperatorConfig{},
 		&OvsDpdkOperatorConfigList{},
 		&OvsDpdkBridgeBinding{},
+		&OvsDpdkBridgeBindingList{},
 	)
 	metav1.AddToGroupVersion(s, GroupVersion)
 	return nil

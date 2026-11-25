@@ -33,6 +33,13 @@ type OvsDpdkBridgeBinding struct {
 	Status OvsDpdkBridgeBindingStatus `json:"status,omitempty"`
 }
 
+// +kubebuilder:object:root=true
+type OvsDpdkBridgeBindingList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []OvsDpdkBridgeBinding `json:"items"`
+}
+
 type OvsDpdkBridgeBindingSpec struct {
 	// NodeSelector is a selector that determines which nodes the policy will be applied to.
 	// It uses simple key-value label matching (equality-based selection only). All specified
