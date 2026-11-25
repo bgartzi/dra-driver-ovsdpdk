@@ -1,10 +1,11 @@
 module github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk
 
-go 1.26.0
+go 1.26.10
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/fsnotify/fsnotify v1.10.1
+	github.com/nmstate/kubernetes-nmstate/api v0.0.0-20261125133147-2bf4dfe4d64e
 	github.com/onsi/ginkgo/v2 v2.33.1
 	github.com/onsi/gomega v1.44.0
 	github.com/ovn-kubernetes/libovsdb v0.9.0
@@ -24,6 +25,7 @@ require (
 	k8s.io/kubelet v0.37.1
 	k8s.io/utils v0.0.0-20260626114624-be93311217bd
 	sigs.k8s.io/controller-runtime v0.24.1
+	sigs.k8s.io/yaml v1.6.0
 	tags.cncf.io/container-device-interface v1.1.1
 	tags.cncf.io/container-device-interface/specs-go v1.1.1
 )
@@ -108,5 +110,4 @@ require (
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
-	sigs.k8s.io/yaml v1.6.0 // indirect
 )

@@ -39,6 +39,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	nmstatev1 "github.com/nmstate/kubernetes-nmstate/api/v1"
+
 	operatorv1alpha "github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk/pkg/api/ovsdpdkoperator/v1alpha1"
 
 	"github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk/pkg/consts"
@@ -55,6 +57,7 @@ func init() {
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(operatorv1alpha.AddToScheme(scheme))
+	utilruntime.Must(nmstatev1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -183,6 +186,12 @@ func runOperator(
 
 	operatorConfigReconciler := controllers.NewOvsDpdkOperatorConfigReconciler(manager.GetClient())
 	err := operatorConfigReconciler.SetupWithManager(manager)
+	if err != nil {
+		return fmt.Errorf("operator configuration controller could not be configured: %w", err)
+	}
+
+	bbReconciler := controllers.NewOvsDpdkBridgeBindingController(manager.GetClient())
+	err = bbReconciler.SetupWithManager(manager)
 	if err != nil {
 		return fmt.Errorf("operator configuration controller could not be configured: %w", err)
 	}
