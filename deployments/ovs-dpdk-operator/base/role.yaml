@@ -55,8 +55,21 @@ rules:
   - update
   - watch
 - apiGroups:
+  - nmstate.io
+  resources:
+  - nodenetworkconfigurationpolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - ovsdpdk.k8snetworkplumbingwg.io
   resources:
+  - ovsdpdkbridgebindings
   - ovsdpdkoperatorconfigs
   verbs:
   - create
