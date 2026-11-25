@@ -58,12 +58,12 @@ func rawStateFromBB(bb *ovsdpdkoperatorv1alpha1.OvsDpdkBridgeBinding) []byte {
 		`ovs-db:
   other_config:
     dpdk-init: "true"
-	dpdk-extra: "-a 0000:00:00.0 --log-level debug"
+    dpdk-extra: "-a 0000:00:00.0 --log-level debug"
 interfaces:
   - name: %s
     type: ovs-interface
     state: up
-	mtu: %s
+    mtu: %d
     dpdk:
       devargs: %s
   - name: %s

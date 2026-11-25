@@ -68,7 +68,7 @@ func (r *OvsDpdkBridgeBindingController) Reconcile(ctx context.Context, req ctrl
 	}
 
 	if err := r.applyNncp(ctx, bb); err != nil {
-		r.log.Error(err, "can't create NNCP", req.Name)
+		r.log.Error(err, "can't create NNCP", "name", req.Name)
 		return ctrl.Result{}, err
 	}
 
@@ -93,6 +93,7 @@ func (r *OvsDpdkBridgeBindingController) applyNncp(
 	if err := controllerutil.SetControllerReference(bb, nncpRender, r.Scheme()); err != nil {
 		return fmt.Errorf("failed to set controller reference on NNCP %s: %w", nncpRender.GetName(), err)
 	}
+	r.log.Info("trying to apply NNCP", "name", nncpRender.GetName(), "desiredState", string(nncpRender.Spec.DesiredState.Raw))
 
 	if err := r.Patch(
 		ctx,
