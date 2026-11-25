@@ -20,16 +20,22 @@ import (
 	_ "embed"
 )
 
-// go:embed deployments/dra-driver-ovsdpdk/base/daemonset.yaml
-var draDriverManifest []byte
+//go:embed poc-manifests/ovsdpdk.k8snetworkplumbingwg.io_ovsdpdkconfigs.yaml
+var draDriverOvsDpdkConfigCRD []byte
 
-// go:embed deployments/dra-driver-ovsdpdk/base/namespace.yaml
-var draDriverNamespaceManifest []byte
+//go:embed poc-manifests/ovsdpdk.k8snetworkplumbingwg.io_ovsdpdkresourcepolicies.yaml
+var draDriverOvsDpdkResourcePoliciesCRD []byte
 
-func OvsDpdkDraDriverDaemonSetManifest() (*DaemonSetManifest, error) {
-	return NewDaemonSetManifestFrom(draDriverManifest)
+//go:embed poc-manifests/dra-driver.yaml
+var draDriverManifests []byte
+
+func GetDraDriverCRDs() [][]byte {
+	return [][]byte{
+		draDriverOvsDpdkConfigCRD,
+		draDriverOvsDpdkResourcePoliciesCRD,
+	}
 }
 
-func OvsDpdkDraDriverNamespaceManifest() (*NamespaceManifest, error) {
-	return NewNamespaceManifestManifestFrom(draDriverNamespaceManifest)
+func GetDraDriverManifests() []byte {
+	return draDriverManifests
 }

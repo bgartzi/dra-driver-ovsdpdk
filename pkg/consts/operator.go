@@ -19,4 +19,9 @@ package consts
 const (
 	// DefaultOperatorNamespace is self explanatory, sorry
 	DefaultOperatorNamespace = "ovs-dpdk-operator"
+
+	OperatorFieldOwnership = "ovs-dpdk-operator"
+
+	OperatorLookupLabelKey   = "ovsdpdk.k8snetworkplumbingwg.io/operator-managed"
+	OperatorLookupLabelValue = "true"
 )

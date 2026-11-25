@@ -26,12 +26,14 @@ import (
 
 	"github.com/urfave/cli/v2"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	coreclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
+	"k8s.io/klog/v2/textlogger"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -41,6 +43,8 @@ import (
 
 	"github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk/pkg/consts"
 	"github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk/pkg/flags"
+
+	controllers "github.com/k8snetworkplumbingwg/dra-driver-ovsdpdk/pkg/controllers/operator"
 )
 
 var (
@@ -49,6 +53,7 @@ var (
 
 func init() {
 	utilruntime.Must(corev1.AddToScheme(scheme))
+	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(operatorv1alpha.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
@@ -65,6 +70,7 @@ func newApp() *cli.App {
 	var draDriverNamespace string
 	var operatorNamespace string
 	var kubeClientConfig flags.KubeClientConfig
+	loggingConfig := flags.NewLoggingConfig()
 
 	cliFlags := []cli.Flag{
 		&cli.StringFlag{
@@ -92,6 +98,7 @@ func newApp() *cli.App {
 	}
 
 	cliFlags = append(cliFlags, kubeClientConfig.Flags()...)
+	cliFlags = append(cliFlags, loggingConfig.Flags()...)
 
 	app := &cli.App{
 		Name:            "ovs-dpdk-operator",
@@ -99,6 +106,15 @@ func newApp() *cli.App {
 		ArgsUsage:       " ",
 		HideHelpCommand: true,
 		Flags:           cliFlags,
+		Before: func(c *cli.Context) error {
+			if err := loggingConfig.Apply(); err != nil {
+				return err
+			}
+			// Wire controller-runtime to use the same klog backend so its
+			// internal logs are not silently dropped.
+			ctrl.SetLogger(textlogger.NewLogger(textlogger.NewConfig()))
+			return nil
+		},
 		Action: func(c *cli.Context) error {
 			restCfg, err := kubeClientConfig.RestConfig()
 			if err != nil {
@@ -164,6 +180,12 @@ func runOperator(
 		"draDriverImage", draDriverContainerImage,
 		"draDriverNamespace", draDriverNamespace,
 	)
+
+	operatorConfigReconciler := controllers.NewOvsDpdkOperatorConfigReconciler(manager.GetClient())
+	err := operatorConfigReconciler.SetupWithManager(manager)
+	if err != nil {
+		return fmt.Errorf("operator configuration controller could not be configured: %w", err)
+	}
 
 	managerErrorChannel := make(chan error, 1)
 	go func() {

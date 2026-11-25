@@ -5,39 +5,12 @@ metadata:
   namespace: ovs-dpdk-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: ovs-dpdk-operator
-rules: []
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: ovs-dpdk-operator
-  namespace: ovs-dpdk-operator
-rules: []
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: ovs-dpdk-operator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: ovs-dpdk-operator
-subjects:
-  - kind: ServiceAccount
-    name: ovs-dpdk-operator
-    namespace: ovs-dpdk-operator
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: ovs-dpdk-operator
-  namespace: ovs-dpdk-operator
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
   name: ovs-dpdk-operator
 subjects:
   - kind: ServiceAccount

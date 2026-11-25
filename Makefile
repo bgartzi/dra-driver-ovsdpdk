@@ -34,7 +34,7 @@ BIN_DIR := $(CURDIR)/bin
 
 APIS := ovsdpdkdra/v1alpha1 ovsdpdkoperator/v1alpha1
 
-.PHONY: all build binary binary-driver binary-operator check vet lint test coverage generate generate-deepcopy generate-crds generate-crds-driver generate-crds-operator generate-mocks build-image build-image-driver build-image-operator push-image push-image-driver push-image-operator deploy deploy-driver deploy-operator undeploy undeploy-driver undeploy-operator deploy-openshift deploy-openshift-driver undeploy-openshift undeploy-openshift-driver gen-manifests-poc
+.PHONY: all build binary binary-driver binary-operator check vet lint test coverage generate generate-deepcopy generate-crds generate-crds-driver generate-crds-operator generate-mocks build-image build-image-driver build-image-operator push-image push-image-driver push-image-operator deploy deploy-driver deploy-operator undeploy undeploy-driver undeploy-operator deploy-openshift deploy-openshift-driver undeploy-openshift undeploy-openshift-driver gen-manifests-poc generate-operator-rbac
 
 all: check test build
 
@@ -77,7 +77,7 @@ coverage: test
 
 CONTROLLER_GEN := $(BIN_DIR)/controller-gen
 
-generate: generate-deepcopy generate-crds generate-mocks
+generate: generate-deepcopy generate-crds generate-mocks generate-operator-rbac
 
 generate-deepcopy: $(CONTROLLER_GEN)
 	for api in $(APIS); do \
@@ -100,6 +100,12 @@ generate-crds-operator: $(CONTROLLER_GEN)
 		crd \
 		paths=$(CURDIR)/pkg/api/ovsdpdkoperator/v1alpha1/ \
 		output:crd:dir=$(CURDIR)/deployments/$(OPERATOR_NAME)/crds/
+
+generate-operator-rbac: $(CONTROLLER_GEN)
+	$(CONTROLLER_GEN) \
+		rbac:roleName=$(OPERATOR_NAME) \
+		paths=$(CURDIR)/pkg/controllers/operator/ \
+		output:dir=$(CURDIR)/deployments/$(OPERATOR_NAME)/base/
 
 $(CONTROLLER_GEN):
 	GOBIN=$(BIN_DIR) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION)
@@ -160,10 +166,10 @@ deploy-operator:
 		kubectl apply -f -
 
 gen-manifests-poc:
-	cp $(CURDIR)/deployments/dra-driver-ovsdpdk/crds/* $(CURDIR)/poc-manifests
+	cp $(CURDIR)/deployments/dra-driver-ovsdpdk/crds/* $(CURDIR)/pkg/dependents/poc-manifests
 	kubectl kustomize $(CURDIR)/deployments/dra-driver-ovsdpdk/operator-poc/ | \
 		sed 's|IMAGE_DRA_DRIVER|$(IMAGE_NAME_DRIVER):$(IMAGE_TAG)|g' | \
-		envsubst > $(CURDIR)/poc-manifests/dra-driver.yaml  \
+		envsubst > $(CURDIR)/pkg/dependents/poc-manifests/dra-driver.yaml  \
 
 undeploy: undeploy-driver undeploy-operator
 
