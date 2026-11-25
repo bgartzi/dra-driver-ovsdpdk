@@ -75,7 +75,7 @@ func NewOvsDpdkOperatorConfigReconciler(
 // +kubebuilder:rbac:groups=ovsdpdk.k8snetworkplumbingwg.io,resources=ovsdpdkoperatorconfigs,verbs=get;list;watch;create;update;patch;delete
 
 func (r *OvsDpdkOperatorConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.log.WithValues("nmstate", req.NamespacedName)
+	_ = r.log.WithValues("ovsdpdkoperatorconfig", req.NamespacedName)
 	r.log.Info("starting reconciliation...")
 	operatorConfig := &ovsdpdkoperatorv1alpha1.OvsDpdkOperatorConfig{}
 	if err := r.Get(ctx, req.NamespacedName, operatorConfig); err != nil {
@@ -87,12 +87,14 @@ func (r *OvsDpdkOperatorConfigReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, err
 	}
 
+	r.log.Info("manifests...")
 	if err := r.applyManifests(ctx); err != nil {
 		r.log.Error(err, "could not apply dra-driver manifests")
 		return ctrl.Result{}, err
 	}
+	r.log.Info("manifests applied :)")
 
-	// TODO: reconciliation etc.
+	// TODO: status checks, updates, etc.
 
 	return ctrl.Result{}, nil
 }
@@ -115,6 +117,7 @@ func (r *OvsDpdkOperatorConfigReconciler) applyManifests(ctx context.Context) er
 
 func (r *OvsDpdkOperatorConfigReconciler) applyDraDriverCRDS(ctx context.Context) error {
 	for _, raw := range dependents.GetDraDriverCRDs() {
+		r.log.Info("applying crd %s", raw)
 		if err := r.applyRawManifests(ctx, raw); err != nil {
 			return err
 		}
@@ -123,6 +126,7 @@ func (r *OvsDpdkOperatorConfigReconciler) applyDraDriverCRDS(ctx context.Context
 }
 
 func (r *OvsDpdkOperatorConfigReconciler) applyDraDriverManifests(ctx context.Context) error {
+	r.log.Info("applying manifests %s", dependents.GetDraDriverManifests())
 	return r.applyRawManifests(ctx, dependents.GetDraDriverManifests())
 }
 
