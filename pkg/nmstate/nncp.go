@@ -63,7 +63,6 @@ interfaces:
   - name: %s
     type: ovs-interface
     state: up
-    mtu: %d
     dpdk:
       devargs: %s
   - name: %s
@@ -71,11 +70,10 @@ interfaces:
     bridge:
       options:
         datapath: netdev
-        port:
-        - name: %s
+      port:
+      - name: %s
 `,
 		dpdkPortName,
-		bb.Spec.Mtu,
 		bb.Spec.Uplink.Interface.Pci,
 		bb.Spec.BridgeName,
 		dpdkPortName,
