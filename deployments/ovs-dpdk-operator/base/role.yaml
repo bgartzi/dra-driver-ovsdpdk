@@ -80,6 +80,12 @@ rules:
   - update
   - watch
 - apiGroups:
+  - ovsdpdk.k8snetworkplumbingwg.io
+  resources:
+  - ovsdpdkbridgebindings/finalizers
+  verbs:
+  - update
+- apiGroups:
   - rbac.authorization.k8s.io
   resources:
   - clusterrolebindings

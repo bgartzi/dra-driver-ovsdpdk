@@ -53,6 +53,7 @@ func NewOvsDpdkBridgeBindingController(
 // +kubebuilder:rbac:groups=nmstate.io,resources=nodenetworkconfigurationpolicies,verbs=get;list;watch;create;update;patch;delete
 // Our own
 // +kubebuilder:rbac:groups=ovsdpdk.k8snetworkplumbingwg.io,resources=ovsdpdkbridgebindings,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=ovsdpdk.k8snetworkplumbingwg.io,resources=ovsdpdkbridgebindings/finalizers,verbs=update
 
 func (r *OvsDpdkBridgeBindingController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = r.log.WithValues("ovsdpdkbridgebinding", req.NamespacedName)
