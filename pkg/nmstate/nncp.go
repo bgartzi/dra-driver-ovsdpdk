@@ -67,6 +67,7 @@ interfaces:
       devargs: %s
   - name: %s
     type: ovs-bridge
+    state: up
     bridge:
       options:
         datapath: netdev
