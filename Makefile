@@ -179,8 +179,8 @@ undeploy-driver: ## Remove the driver (vanilla Kubernetes / kind)
 	kubectl delete --ignore-not-found -f $(CURDIR)/deployments/dra-driver-ovsdpdk/crds/
 
 undeploy-operator:
-	kubectl delete -n dra-driver-ovsdpdk daemonsets dra-driver-ovsdpdk
-	kubectl delete namespace dra-driver-ovsdpdk
+	kubectl delete --ignore-not-found -n dra-driver-ovsdpdk daemonsets dra-driver-ovsdpdk
+	kubectl delete --ignore-not-found namespace dra-driver-ovsdpdk
 	kubectl kustomize $(CURDIR)/deployments/ovs-dpdk-operator/k8s/ | \
 		kubectl delete --ignore-not-found -f -
 	kubectl delete --ignore-not-found -f $(CURDIR)/deployments/ovs-dpdk-operator/crds/
